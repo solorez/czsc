@@ -65,10 +65,12 @@ def get_raw_bars(symbol='BTC-USD', freq='60分钟', sdt='20200101', edt='2024063
     if "dt" not in kline.columns:
         kline["dt"] = pd.to_datetime(kline["datetime"])
     # print(kline[:5])
-    sdt = pd.to_datetime(sdt, format='%Y-%m-%d')  # %H:%M:%S
     print(f"sdt:{sdt}")
-    edt = pd.to_datetime(edt, format='%Y-%m-%d') # %H:%M:%S
     print(f"edt:{edt}")
+    sdt = pd.to_datetime(sdt, format='%Y%m%d')  # %H:%M:%S
+
+    edt = pd.to_datetime(edt, format='%Y%m%d') # %H:%M:%S
+
     # kline = kline[(kline["dt"] >= pd.to_datetime(sdt)) & (kline["dt"] <= pd.to_datetime(edt))]
     kline = kline[(kline["dt"] >= sdt) & (kline["dt"] <= edt)]
     if kline.empty:
