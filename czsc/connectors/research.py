@@ -28,13 +28,13 @@ def get_groups():
 
     :return: 分组信息
     """
-    return ["A股主要指数", "A股场内基金", "中证500成分股", "期货主力"]
+    return ["A股主要指数", "A股场内基金", "中证500成分股", "期货主力", "crypto"]
 
 
-def get_symbols(name, **kwargs):
+def get_symbols(name="crypto", **kwargs):
     """获取指定分组下的所有标的代码
 
-    :param name: 分组名称，可选值：'A股主要指数', 'A股场内基金', '中证500成分股', '期货主力'
+    :param name: 分组名称，可选值：'A股主要指数', 'A股场内基金', '中证500成分股', '期货主力', "crypto"
     :param kwargs:
     :return:
     """
@@ -45,7 +45,7 @@ def get_symbols(name, **kwargs):
     return [os.path.basename(x).replace(".parquet", "") for x in files]
 
 
-def get_raw_bars(symbol, freq, sdt, edt, fq="前复权", **kwargs):
+def get_raw_bars(symbol='BTC-USD', freq='60分钟', sdt='20200101', edt='20240630', fq="前复权", **kwargs):
     """获取 CZSC 库定义的标准 RawBar 对象列表
 
     :param symbol: 标的代码
@@ -64,7 +64,13 @@ def get_raw_bars(symbol, freq, sdt, edt, fq="前复权", **kwargs):
     kline = pd.read_parquet(file)
     if "dt" not in kline.columns:
         kline["dt"] = pd.to_datetime(kline["datetime"])
-    kline = kline[(kline["dt"] >= pd.to_datetime(sdt)) & (kline["dt"] <= pd.to_datetime(edt))]
+    # print(kline[:5])
+    sdt = pd.to_datetime(sdt, format='%Y-%m-%d')  # %H:%M:%S
+    print(f"sdt:{sdt}")
+    edt = pd.to_datetime(edt, format='%Y-%m-%d') # %H:%M:%S
+    print(f"edt:{edt}")
+    # kline = kline[(kline["dt"] >= pd.to_datetime(sdt)) & (kline["dt"] <= pd.to_datetime(edt))]
+    kline = kline[(kline["dt"] >= sdt) & (kline["dt"] <= edt)]
     if kline.empty:
         return []
 

@@ -10,10 +10,12 @@ manuscrips/
 *.html
 *.png
 */.ipynb_checkpoints/
+*.pkl
 # C extensions
 *.so
 *api/
-
+*.quant_data_cache_waditu/
+*.quant_data_cache_zbczsc/
 # Distribution / packaging
 .Python
 build/
@@ -110,3 +112,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+*.pkl
+*.pkl
+*.pkl
+/examples/develop/.quant_data_cache_zbczsc
