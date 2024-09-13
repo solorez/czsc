@@ -359,11 +359,455 @@ def ACOS(real):
     return acos_values
 
 
+def ADD(real0, real1):
+    """
+    Calculate the vector arithmetic add of two input arrays.
+
+    Parameters:
+    real0 (np.ndarray): First input array of real values.
+    real1 (np.ndarray): Second input array of real values.
+
+    Returns:
+    np.ndarray: Array of element-wise addition of real0 and real1.
+    """
+    # Ensure the inputs are numpy arrays
+    real0 = np.asarray(real0)
+    real1 = np.asarray(real1)
+
+    # Check if the arrays have the same shape
+    if real0.shape != real1.shape:
+        raise ValueError("Input arrays must have the same shape.")
+
+    # Perform element-wise addition
+    result = real0 + real1
+
+    return result
 
 
+import numpy as np
 
 
+def AD(high, low, close, volume):
+    """
+    Calculate the Chaikin A/D Line.
 
+    Parameters:
+    high (np.ndarray): Array of high prices.
+    low (np.ndarray): Array of low prices.
+    close (np.ndarray): Array of closing prices.
+    volume (np.ndarray): Array of trading volumes.
+
+    Returns:
+    np.ndarray: Array of Chaikin A/D Line values.
+    """
+    # Ensure the inputs are numpy arrays
+    high = np.asarray(high)
+    low = np.asarray(low)
+    close = np.asarray(close)
+    volume = np.asarray(volume)
+
+    # Check if all arrays have the same length
+    if not (len(high) == len(low) == len(close) == len(volume)):
+        raise ValueError("All input arrays must have the same length.")
+
+    # Initialize variables
+    ad = np.zeros_like(close)
+    nbBar = len(close)
+    outIdx = 0
+
+    for currentBar in range(nbBar):
+        high_val = high[currentBar]
+        low_val = low[currentBar]
+        tmp = high_val - low_val
+        close_val = close[currentBar]
+
+        if tmp > 0:
+            ad[currentBar] = ad[currentBar - 1] + ((close_val - low_val - (high_val - close_val)) / tmp) * volume[
+                currentBar]
+        else:
+            ad[currentBar] = ad[currentBar - 1]
+
+    return ad
+
+
+#TODO
+def ADOSC(high, low, close, volume, fastperiod=3, slowperiod=10):
+    """
+    Calculate the Chaikin A/D Oscillator.
+
+    Parameters:
+    high (np.ndarray): Array of high prices.
+    low (np.ndarray): Array of low prices.
+    close (np.ndarray): Array of closing prices.
+    volume (np.ndarray): Array of trading volumes.
+    fastperiod (int): Number of period for the fast MA (default 3).
+    slowperiod (int): Number of period for the slow MA (default 10).
+
+    Returns:
+    np.ndarray: Array of Chaikin A/D Oscillator values.
+    """
+    # Ensure the inputs are numpy arrays
+    high = np.asarray(high)
+    low = np.asarray(low)
+    close = np.asarray(close)
+    volume = np.asarray(volume)
+
+    # Check if all arrays have the same length
+    if not (len(high) == len(low) == len(close) == len(volume)):
+        raise ValueError("All input arrays must have the same length.")
+
+    # Initialize variables
+    today = 0
+    outIdx = 0
+    lookbackTotal = 0
+    slowestPeriod = max(fastperiod, slowperiod)
+    ad = 0.0
+    fastEMA = 0.0
+    slowEMA = 0.0
+    fastk = 2 / (fastperiod + 1)
+    slowk = 2 / (slowperiod + 1)
+    one_minus_fastk = 1 - fastk
+    one_minus_slowk = 1 - slowk
+
+    # Constants for EMA
+    fastk = 2 / (fastperiod + 1)
+    one_minus_fastk = 1 - fastk
+
+    slowk = 2 / (slowperiod + 1)
+    one_minus_slowk = 1 - slowk
+
+    # Initialize the two EMA and skip the unstable period.
+    while today < slowestPeriod:
+        ad += ((close[today] - low[today]) - (high[today] - close[today])) / (high[today] - low[today]) * volume[today]
+        fastEMA = (fastk * ad) + (one_minus_fastk * fastEMA)
+        slowEMA = (slowk * ad) + (one_minus_slowk * slowEMA)
+        today += 1
+
+    # Perform the calculation for the requested range
+    outReal = np.zeros_like(close)
+    while today <= len(close) - 1:
+        ad += ((close[today] - low[today]) - (high[today] - close[today])) / (high[today] - low[today]) * volume[today]
+        fastEMA = (fastk * ad) + (one_minus_fastk * fastEMA)
+        slowEMA = (slowk * ad) + (one_minus_slowk * slowEMA)
+        outReal[outIdx] = fastEMA - slowEMA
+        outIdx += 1
+        today += 1
+
+    return outReal
+
+
+#TODO
+def ADX(high, low, close, timeperiod=14):
+    """
+    Calculate the Average Directional Movement Index (ADX).
+
+    Parameters:
+    high (np.ndarray): Array of high prices.
+    low (np.ndarray): Array of low prices.
+    close (np.ndarray): Array of closing prices.
+    timeperiod (int): Number of periods to use for calculation (default 14).
+
+    Returns:
+    np.ndarray: Array of ADX values.
+    """
+    # Ensure the inputs are numpy arrays
+    high = np.asarray(high)
+    low = np.asarray(low)
+    close = np.asarray(close)
+
+    # Check if all arrays have the same length
+    if not (len(high) == len(low) == len(close)):
+        raise ValueError("All input arrays must have the same length.")
+
+    # Initialize variables
+    today = 0
+    lookbackTotal = (2 * timeperiod) + 14 - 1  # Based on the C code's lookbackTotal calculation
+    outReal = np.zeros_like(close)
+    outIdx = 0
+
+    # Initialize variables for calculation
+    prevHigh = high[0]
+    prevLow = low[0]
+    prevClose = close[0]
+    prevMinusDM = 0.0
+    prevPlusDM = 0.0
+    prevTR = 0.0
+
+    # Calculate initial DM and TR
+    for i in range(1, timeperiod):
+        today += 1
+        tempReal = high[today]
+        diffP = tempReal - prevHigh
+        prevHigh = tempReal
+
+        tempReal = low[today]
+        diffM = prevLow - tempReal
+        prevLow = tempReal
+
+        if diffM > 0 and diffP < diffM:
+            prevMinusDM += diffM
+        elif diffP > 0 and diffP > diffM:
+            prevPlusDM += diffP
+
+        true_range = max(tempReal - prevLow, prevHigh - tempReal, prevHigh - prevLow)
+        prevTR += true_range
+        prevClose = close[today]
+
+    # Calculate the first ADX
+    sumDX = 0.0
+    for i in range(timeperiod):
+        today += 1
+        tempReal = high[today]
+        diffP = tempReal - prevHigh
+        prevHigh = tempReal
+
+        tempReal = low[today]
+        diffM = prevLow - tempReal
+        prevLow = tempReal
+
+        prevMinusDM -= prevMinusDM / timeperiod
+        prevPlusDM -= prevPlusDM / timeperiod
+
+        if diffM > 0 and diffP < diffM:
+            prevMinusDM += diffM
+        elif diffP > 0 and diffP > diffM:
+            prevPlusDM += diffP
+
+        true_range = max(tempReal - prevLow, prevHigh - tempReal, prevHigh - prevLow)
+        prevTR = prevTR - (prevTR / timeperiod) + true_range
+        prevClose = close[today]
+
+        if prevTR != 0:
+            minusDI = 100.0 * (prevMinusDM / prevTR)
+            plusDI = 100.0 * (prevPlusDM / prevTR)
+            sumDX += 100.0 * (abs(minusDI - plusDI) / (minusDI + plusDI))
+
+    prevADX = sumDX / timeperiod
+
+    # Output the first ADX
+    outReal[outIdx] = prevADX
+    outIdx += 1
+
+    # Calculate and output subsequent ADX
+    for today in range(timeperiod, len(close)):
+        tempReal = high[today]
+        diffP = tempReal - prevHigh
+        prevHigh = tempReal
+
+        tempReal = low[today]
+        diffM = prevLow - tempReal
+        prevLow = tempReal
+
+        prevMinusDM -= prevMinusDM / timeperiod
+        prevPlusDM -= prevPlusDM / timeperiod
+
+        if diffM > 0 and diffP < diffM:
+            prevMinusDM += diffM
+        elif diffP > 0 and diffP > diffM:
+            prevPlusDM += diffP
+
+        true_range = max(tempReal - prevLow, prevHigh - tempReal, prevHigh - prevLow)
+        prevTR = prevTR - (prevTR / timeperiod) + true_range
+        prevClose = close[today]
+
+        if prevTR != 0:
+            minusDI = 100.0 * (prevMinusDM / prevTR)
+            plusDI = 100.0 * (prevPlusDM / prevTR)
+            tempReal = abs(minusDI - plusDI) / (minusDI + plusDI)
+            prevADX = ((prevADX * (timeperiod - 1)) + tempReal) / timeperiod
+
+        outReal[outIdx] = prevADX
+        outIdx += 1
+
+    return outReal[:outIdx]
+
+
+def BBANDS(real, timeperiod=5, nbdevup=2.0, nbdevdn=2.0, matype=0):
+    """
+    Calculate Bollinger Bands.
+
+    Parameters:
+    real (np.ndarray): Input array of real values.
+    timeperiod (int): Number of periods for the moving average (default 5).
+    nbdevup (float): The number of standard deviations to add to the moving average for the upper band (default 2.0).
+    nbdevdn (float): The number of standard deviations to subtract from the moving average for the lower band (default 2.0).
+    matype (int): Type of moving average (default 0 for Simple Moving Average).
+
+    Returns:
+    tuple: (upperband, middleband, lowerband) arrays.
+    """
+    # Ensure the input is a numpy array
+    real = np.asarray(real)
+
+    # Validate input parameters
+    if timeperiod < 2 or timeperiod > 100000:
+        raise ValueError("timeperiod must be between 2 and 100000.")
+    if nbdevup < -3.000000e+37 or nbdevup > 3.000000e+37:
+        raise ValueError("nbdevup must be between -3.000000e+37 and 3.000000e+37.")
+    if nbdevdn < -3.000000e+37 or nbdevdn > 3.000000e+37:
+        raise ValueError("nbdevdn must be between -3.000000e+37 and 3.000000e+37.")
+    if matype < 0 or matype > 8:
+        raise ValueError("matype must be between 0 and 8.")
+
+    # Calculate the moving average (middle band)
+    middleband = MA(real, timeperiod, matype)
+
+    # Calculate the standard deviation
+    temp = real[timeperiod-1:] - middleband[:-timeperiod+1]
+    stddev = np.sqrt(np.mean(temp**2))
+
+    # Calculate the upper and lower bands
+    upperband = middleband + stddev * nbdevup
+    lowerband = middleband - stddev * nbdevdn
+
+    # Return the bands
+    return upperband, middleband, lowerband
+
+#TODO 计算结果不对
+def MA(real, timeperiod=30, matype=0):
+    """
+    Calculate the moving average of the input data.
+
+    Parameters:
+    real (np.ndarray): Input array of real values.
+    timeperiod (int): Number of periods for the moving average (default 30).
+    matype (int): Type of moving average (default 0 for Simple Moving Average).
+
+    Returns:
+    np.ndarray: Array of moving average values.
+    """
+    # Ensure the input is a numpy array
+    real = np.asarray(real)
+
+    # Validate input parameters
+    if timeperiod < 1 or timeperiod > 100000:
+        raise ValueError("timeperiod must be between 1 and 100000.")
+    if matype < 0 or matype > 8:
+        raise ValueError("matype must be between 0 and 8.")
+
+    # Handle the case where timeperiod is 1, in which case the moving average is just the input itself
+    if timeperiod == 1:
+        return real
+
+    # Call the appropriate moving average function based on matype
+    if matype == 0:  # Simple Moving Average (SMA)
+        return np.convolve(real, np.ones(timeperiod), 'valid') / timeperiod
+    # Add other moving average types here if needed
+
+    # For simplicity, only SMA is implemented in this example.
+    # You can extend this function to include other types of moving averages (EMA, WMA, etc.)
+    # based on the TA-LIB documentation and the corresponding formulas.
+
+    # Return the calculated moving average
+    return np.convolve(real, np.ones(timeperiod), 'valid') / timeperiod
+
+
+import numpy as np
+
+def PLUS_DI(high, low, close, timeperiod=3):
+    """
+    Calculate the Plus Directional Indicator (Plus DI).
+
+    Parameters:
+    high (np.ndarray): Array of high prices.
+    low (np.ndarray): Array of low prices.
+    close (np.ndarray): Array of closing prices.
+    timeperiod (int): Number of periods for the calculation (default 14).
+
+    Returns:
+    np.ndarray: Array of Plus DI values.
+    """
+    # Ensure the inputs are numpy arrays
+    high = np.asarray(high)
+    low = np.asarray(low)
+    close = np.asarray(close)
+
+    # Validate input parameters
+    if timeperiod < 1 or timeperiod > 100000:
+        raise ValueError("timeperiod must be between 1 and 100000.")
+
+    # Initialize variables
+    today = 0
+    lookback_total = timeperiod - 1
+    outIdx = 0
+    outReal = np.zeros_like(close)
+    prevHigh = high[0]
+    prevLow = low[0]
+    prevClose = close[0]
+    prevPlusDM = 0.0
+    prevTR = 0.0
+
+    # Process the initial DM and TR
+    for i in range(1, timeperiod):
+        today += 1
+        tempReal = high[today]
+        diffP = tempReal - prevHigh
+        prevHigh = tempReal
+
+        tempReal = low[today]
+        diffM = prevLow - tempReal
+        prevLow = tempReal
+
+        if diffP > diffM and diffP > 0:
+            prevPlusDM += diffP
+
+        true_range = max(tempReal - prevLow, prevHigh - tempReal, prevHigh - prevLow)
+        prevTR += true_range
+        prevClose = close[today]
+
+    # Skip the unstable period
+    for i in range(1, lookback_total + 1):
+        today += 1
+        tempReal = high[today]
+        diffP = tempReal - prevHigh
+        prevHigh = tempReal
+
+        tempReal = low[today]
+        diffM = prevLow - tempReal
+        prevLow = tempReal
+
+        if diffP > diffM and diffP > 0:
+            prevPlusDM = prevPlusDM - (prevPlusDM / timeperiod) + diffP
+        else:
+            prevPlusDM = prevPlusDM - (prevPlusDM / timeperiod)
+
+        true_range = max(tempReal - prevLow, prevHigh - tempReal, prevHigh - prevLow)
+        prevTR = prevTR - (prevTR / timeperiod) + true_range
+        prevClose = close[today]
+
+    # Calculate the first Plus DI output
+    if prevTR != 0:
+        outReal[outIdx] = 100.0 * (prevPlusDM / prevTR)
+    else:
+        outReal[outIdx] = 0.0
+    outIdx += 1
+
+    # Calculate and output subsequent Plus DI
+    for today in range(timeperiod, len(close)):
+        tempReal = high[today]
+        diffP = tempReal - prevHigh
+        prevHigh = tempReal
+
+        tempReal = low[today]
+        diffM = prevLow - tempReal
+        prevLow = tempReal
+
+        if diffP > diffM and diffP > 0:
+            prevPlusDM = prevPlusDM - (prevPlusDM / timeperiod) + diffP
+        else:
+            prevPlusDM = prevPlusDM - (prevPlusDM / timeperiod)
+
+        true_range = max(tempReal - prevLow, prevHigh - tempReal, prevHigh - prevLow)
+        prevTR = prevTR - (prevTR / timeperiod) + true_range
+        prevClose = close[today]
+
+        if prevTR != 0:
+            outReal[outIdx] = 100.0 * (prevPlusDM / prevTR)
+        else:
+            outReal[outIdx] = outReal[outIdx - 1]
+        outIdx += 1
+
+    return outReal[:outIdx]
 
 
 
