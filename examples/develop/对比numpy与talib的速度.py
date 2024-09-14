@@ -3,24 +3,24 @@ import sys
 sys.path.insert(0, r"D:\github\czsc")
 import talib
 from czsc.utils import ta
-# from czsc.connectors import cooperation as coo
+from czsc.connectors import cooperation as coo
 import numpy as np
 
 
 
-# df = coo.get_raw_bars(symbol="SFIC9001", freq="30分钟", fq="后复权", sdt="20100101", edt="20210301", raw_bars=False)
+df = coo.get_raw_bars(symbol="SFIC9001", freq="30分钟", fq="后复权", sdt="20100101", edt="20210301", raw_bars=False)
 
-#
-# def test_with_numpy():
-#     df1 = df.copy()
-#     df1["x"] = ta.LINEARREG_ANGLE(df["close"].values, 10)
-#
-#
-# def test_with_talib():
-#     df1 = df.copy()
-#     df1["x"] = talib.LINEARREG_ANGLE(df["close"].values, 10)
-#
-#
+
+def test_with_numpy():
+    df1 = df.copy()
+    df1["x"] = ta.LINEARREG_ANGLE(df["close"].values, 10)
+
+
+def test_with_talib():
+    df1 = df.copy()
+    df1["x"] = talib.LINEARREG_ANGLE(df["close"].values, 10)
+
+
 # talib.stream_ACOS()
 # # Example usage:
 # real_data = np.array([0.5, -0.5, 1.0])
@@ -126,6 +126,29 @@ import numpy as np
 # talib.nvi
 # talib.stream_OBV()
 # talib.stream_PLUS_DI()
+# talib.stream_PLUS_DM()
+# talib.PPO()
+# talib.PVI
+# talib.ROC()
+talib.SAR()
+# talib.SQRT()
+talib.STDDEV()
+talib.STOCH()
+talib.SUB()
+talibta.SUM()
+talib.T3()
+talib.Tan()
+talib.TEMA()
+talib.TRANGE()
+talib.TRIMA()
+talib.TRIX()
+talib.TSF()
+talib.TYPPRICE()
+talib.ULTOSC()
+talib.VAR()
+talib.WCLPRICE()
+talib.WILLR()
+talib.WMA()
 
 
 
@@ -155,3 +178,14 @@ low_data = np.array([98, 99, 98, 100])
 close_data = np.array([99, 101, 100, 102])
 plus_di_results =ta.PLUS_DI(high_data, low_data, close_data)
 print(plus_di_results)
+
+
+# 示例数据
+high = np.array([100, 102, 101, 105, 107, 106])
+low = np.array([99, 98, 99, 103, 104, 105])
+close = np.array([100, 101, 100, 104, 106, 105])
+
+# 计算STOCH
+slowk, slowd = STOCH(high, low, close)
+print("SlowK:", slowk)
+print("SlowD:", slowd)
